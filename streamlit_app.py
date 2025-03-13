@@ -1,12 +1,7 @@
 import streamlit as st
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig, BitsAndBytesConfig
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-
-import transformers.integrations.bitsandbytes as bnb
-# Monkey-patch get_available_devices() to return a set instead of frozenset
-_original_get_available_devices = bnb.get_available_devices
-bnb.get_available_devices = lambda: set(_original_get_available_devices())
+from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
+from peft import LoraConfig, get_peft_model
 
 # Constants
 MODEL_NAME = "deepseek-ai/deepseek-math-7b-base"
@@ -14,29 +9,20 @@ SAVE_PATH = "finetuned_deepseek_math"
 
 @st.cache_resource(show_spinner=False)
 def load_model():
-    # 4-bit quantization configuration
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_compute_dtype=torch.bfloat16
-    )
-
-    # Load tokenizer and model in 4-bit mode
+    # Load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     tokenizer.pad_token = tokenizer.eos_token
 
+    # Load the full-precision model without quantization_config
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
-        torch_dtype=torch.bfloat16,
-        device_map="cpu",
-        quantization_config=bnb_config
+        torch_dtype=torch.float32,  # Using full precision on CPU
+        device_map="cpu"
     )
     model.generation_config = GenerationConfig.from_pretrained(MODEL_NAME)
     model.generation_config.pad_token_id = model.generation_config.eos_token_id
 
-    # Prepare model for k-bit training and wrap with LoRA via PEFT
-    model = prepare_model_for_kbit_training(model)
+    # Attach LoRA adapters
     lora_config = LoraConfig(
         r=20,
         lora_alpha=40,
