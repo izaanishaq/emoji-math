@@ -24,7 +24,7 @@ def load_model():
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
         torch_dtype=torch.bfloat16,
-        device_map="auto",
+        device_map="cpu",
         quantization_config=bnb_config
     )
     model.generation_config = GenerationConfig.from_pretrained(MODEL_NAME)
