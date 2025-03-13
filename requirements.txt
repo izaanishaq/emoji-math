@@ -4,4 +4,4 @@ transformers
 accelerate
 peft
 datasets
-bitsandbytes-cpu
+bitsandbytes
