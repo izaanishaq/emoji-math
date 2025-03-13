@@ -3,6 +3,11 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
+import transformers.integrations.bitsandbytes as bnb
+# Monkey-patch get_available_devices() to return a set instead of frozenset
+_original_get_available_devices = bnb.get_available_devices
+bnb.get_available_devices = lambda: set(_original_get_available_devices())
+
 # Constants
 MODEL_NAME = "deepseek-ai/deepseek-math-7b-base"
 SAVE_PATH = "finetuned_deepseek_math"
